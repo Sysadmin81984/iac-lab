@@ -2,9 +2,9 @@ name: CI Infrastructure Checks
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: ["master", "main"]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: ["master", "main"]
 
 jobs:
   lint-terraform:
@@ -32,4 +32,4 @@ jobs:
       - name: Run Ansible Lint
         uses: ansible/ansible-lint@v6
         with:
-          path: "ansible/"
+          args: "ansible/"
