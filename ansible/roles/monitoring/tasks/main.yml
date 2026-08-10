@@ -1,0 +1,69 @@
+---
+- name: Create directory for monitoring stack
+  ansible.builtin.file:
+    path: /opt/monitoring
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Deploy prometheus.yml configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /opt/monitoring/prometheus.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+
+- name: Deploy docker-compose.yml for Monitoring
+  ansible.builtin.copy:
+    dest: /opt/monitoring/docker-compose.yml
+    mode: '0644'
+    content: |
+      version: '3.8'
+      services:
+        prometheus:
+          image: prom/prometheus:latest
+          container_name: prometheus
+          restart: always
+          volumes:
+            - /opt/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+          ports:
+            - "9090:9090"
+
+        node-exporter:
+          image: prom/node-exporter:latest
+          container_name: node-exporter
+          restart: always
+          ports:
+            - "9100:9100"
+
+        cadvisor:
+          image: gcr.io/cadvisor/cadvisor:v0.47.2
+          container_name: cadvisor
+          restart: always
+          ports:
+            - "8080:8080"
+          volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+            - /dev/disk/:/dev/disk:ro
+
+        grafana:
+          image: grafana/grafana:10.4.0
+          container_name: grafana
+          restart: always
+          ports:
+            - "3000:3000"
+          environment:
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+          depends_on:
+            - prometheus
+
+- name: Run Monitoring Stack via Docker Compose
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: /opt/monitoring
+  changed_when: false
