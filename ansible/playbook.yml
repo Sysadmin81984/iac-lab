@@ -1,0 +1,8 @@
+---
+- name: Deploy Infrastructure Stack
+  hosts: webservers
+  become: true
+
+  roles:
+    - docker
+    - app

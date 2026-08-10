@@ -1,0 +1,15 @@
+# Terraform local state & providers
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+cloud-init-rendered.yaml
+
+# Ansible temporary & generated files
+ansible/inventory.ini
+*.retry
+
+# SSH keys & system files
+*.pem
+.DS_Store
+

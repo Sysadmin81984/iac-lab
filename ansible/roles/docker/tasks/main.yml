@@ -1,0 +1,25 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Docker and system packages
+  ansible.builtin.apt:
+    pkg:
+      - docker.io
+      - docker-compose-v2
+      - curl
+      - git
+    state: present
+
+- name: Ensure Docker service is running
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add 'ubuntu' user to docker group
+  ansible.builtin.user:
+    name: ubuntu
+    groups: docker
+    append: true
