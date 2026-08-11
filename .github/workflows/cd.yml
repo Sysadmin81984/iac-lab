@@ -1,0 +1,24 @@
+name: CD Continuous Deployment
+
+on:
+  push:
+    branches: ["main", "master"]
+
+jobs:
+  deploy:
+    name: Deploy to Multipass VM
+    needs: [lint-terraform, lint-ansible] # Деплой запуститься ТІЛЬКИ після успішного CI
+    runs-on: self-hosted # Запускаємо на нашому локальному агентові
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Ansible Playbook
+        env:
+          VAULT_PASS: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "$VAULT_PASS" > .vault_pass.txt
+          cd ansible
+          ansible-playbook -i inventory.ini playbook.yml --vault-password-file ../.vault_pass.txt
+          rm -f ../.vault_pass.txt
