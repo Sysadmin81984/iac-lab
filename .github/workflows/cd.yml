@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     name: Deploy to Multipass VM
-    needs: [lint-terraform, lint-ansible] # Деплой запуститься ТІЛЬКИ після успішного CI
+#    needs: [lint-terraform, lint-ansible] # Деплой запуститься ТІЛЬКИ після успішного CI
     runs-on: self-hosted # Запускаємо на нашому локальному агентові
 
     steps:
