@@ -1,23 +1,27 @@
 ---
-- name: Disaster Recovery - Restore PostgreSQL Database
-  hosts: webservers
+- name: Restore database playbook
+  hosts: all
   become: true
 
   tasks:
-    - name: Find the latest backup file
-      ansible.builtin.shell: "ls -1t /var/backups/postgres/*.sql.gz | head -n 1"
+    - name: Find latest backup file
+      ansible.builtin.shell: set -o pipefail && ls -t /var/backups/*.sql.gz | head -n 1
+      args:
+        executable: /bin/bash
       register: latest_backup
-      changed_when: false 
+      changed_when: false
 
     - name: Fail if no backup found
       ansible.builtin.fail:
-        msg: "No backup files found in /var/backups/postgres/"
+        msg: "No backup files found in /var/backups/"
       when: latest_backup.stdout == ""
 
-    - name: Print backup being restored
+    - name: Display backup file to restore
       ansible.builtin.debug:
-        msg: "Restoring database from file: {{ latest_backup.stdout }}"
+        msg: "Restoring from: {{ latest_backup.stdout }}"
 
-    - name: Restore database into PostgreSQL container
-      ansible.builtin.shell: "gunzip -c {{ latest_backup.stdout }} | docker exec -i app-db-1 psql -U {{ db_user }} -d {{ db_name }}"
+    - name: Restore PostgreSQL database from backup
+      ansible.builtin.shell: set -o pipefail && zcat {{ latest_backup.stdout }} | docker exec -i $(docker ps -qf 'name=db') psql -U app_user -d app_db
+      args:
+        executable: /bin/bash
       changed_when: true
