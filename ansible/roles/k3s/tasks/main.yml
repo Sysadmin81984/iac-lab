@@ -5,9 +5,11 @@
   ignore_errors: true
   changed_when: false
 
-- name: Install k3s via official installer
-  ansible.builtin.shell: "curl -sfL https://get.k3s.io | sh -"
-  when: k3s_check.rc != 0
+- name: Download k3s installation script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/get-k3s.sh
+    mode: '0755'
 
 - name: Ensure k3s service is started and enabled
   ansible.builtin.systemd:
