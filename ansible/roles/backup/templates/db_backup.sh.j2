@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -e
+
+BACKUP_DIR="/var/backups/postgres"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/db_backup_$TIMESTAMP.sql.gz"
+
+mkdir -p $BACKUP_DIR
+
+# Дамп БД прямо з Docker-контейнера app-db-1
+docker exec app-db-1 pg_dump -U {{ db_user }} {{ db_name }} | gzip > $BACKUP_FILE
+
+# Видаляємо бекапи, старіші за 7 днів (ротація)
+find $BACKUP_DIR -type f -name "*.sql.gz" -mtime +7 -delete
+
+echo "[$(date)] Backup completed successfully: $BACKUP_FILE" >> /var/log/db_backup.log
+3.3. Створення тасок ролі backup (roles/backup/tasks/main.yml):Створіть файл roles/backup/tasks/main.yml:YAML---
+- name: Ensure backup directory exists
+  file:
+    path: /var/backups/postgres
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Deploy DB backup script
+  template:
+    src: db_backup.sh.j2
+    dest: /usr/local/bin/db_backup.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Schedule daily cron job for DB backup at 02:00 AM
+  cron:
+    name: "Daily PostgreSQL Backup"
+    minute: "0"
+    hour: "2"
+    job: "/usr/local/bin/db_backup.sh"
