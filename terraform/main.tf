@@ -32,7 +32,7 @@ resource "multipass_instance" "web" {
   name           = "clean-lab-server"
   cpus           = 2
   memory         = "2Gb"
-  disk           = "5Gb"
+  disk           = "6Gb"
   image          = "22.04"
   cloudinit_file = local_file.rendered_cloud_init.filename
 }
