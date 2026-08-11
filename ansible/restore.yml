@@ -1,0 +1,21 @@
+---
+- name: Disaster Recovery - Restore PostgreSQL Database
+  hosts: webservers
+  become: yes
+
+  tasks:
+    - name: Find the latest backup file
+      shell: "ls -1t /var/backups/postgres/*.sql.gz | head -n 1"
+      register: latest_backup
+
+    - name: Fail if no backup found
+      fail:
+        msg: "No backup files found in /var/backups/postgres/"
+      when: latest_backup.stdout == ""
+
+    - name: Print backup being restored
+      debug:
+        msg: "Restoring database from file: {{ latest_backup.stdout }}"
+
+    - name: Restore database into PostgreSQL container
+      shell: "gunzip -c {{ latest_backup.stdout }} | docker exec -i app-db-1 psql -U {{ db_user }} -d {{ db_name }}"
