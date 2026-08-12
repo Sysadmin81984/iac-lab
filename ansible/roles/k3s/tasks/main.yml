@@ -33,8 +33,8 @@
     group: ubuntu
     mode: '0600'
 
-- name: Symlink k3s to kubectl
-  ansible.builtin.file:
-    src: /usr/local/bin/k3s
-    dest: /usr/local/bin/kubectl
-    state: link
+- name: Add KUBECONFIG export to .bashrc
+  ansible.builtin.lineinfile:
+    path: /home/ubuntu/.bashrc
+    line: 'export KUBECONFIG=~/.kube/config'
+    state: present
