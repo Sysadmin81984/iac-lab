@@ -4,24 +4,27 @@
   become: true
 
   tasks:
-    - name: Find latest backup file
-      ansible.builtin.shell: set -o pipefail && ls -t /var/backups/*.sql.gz | head -n 1
-      args:
-        executable: /bin/bash
-      register: latest_backup
-      changed_when: false
+    - name: Find backup files
+      ansible.builtin.find:
+        paths: /var/backups/postgres
+        patterns: "*.sql.gz"
+      register: found_backups
 
     - name: Fail if no backup found
       ansible.builtin.fail:
-        msg: "No backup files found in /var/backups/"
-      when: latest_backup.stdout == ""
+        msg: "No backup files found in /backups/postgres/"
+      when: found_backups.matched == 0
+
+    - name: Set latest backup path
+      ansible.builtin.set_fact:
+        latest_backup_path: "{{ (found_backups.files | sort(attribute='mtime', reverse=true) | first).path }}"
 
     - name: Display backup file to restore
       ansible.builtin.debug:
-        msg: "Restoring from: {{ latest_backup.stdout }}"
+        msg: "Restoring from: {{ latest_backup_path }}"
 
     - name: Restore PostgreSQL database from backup
-      ansible.builtin.shell: set -o pipefail && zcat {{ latest_backup.stdout }} | docker exec -i $(docker ps -qf 'name=db') psql -U app_user -d app_db
+      ansible.builtin.shell: set -o pipefail && zcat {{ latest_backup_path }} | docker exec -i $(docker ps -qf 'name=db') psql -U db_user -d main_db
       args:
         executable: /bin/bash
       changed_when: true

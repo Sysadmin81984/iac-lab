@@ -1,15 +1,14 @@
 ---
-- name: Check if k3s is already installed
-  ansible.builtin.command: k3s --version
-  register: k3s_check
-  ignore_errors: true
-  changed_when: false
-
 - name: Download k3s installation script
   ansible.builtin.get_url:
     url: https://get.k3s.io
     dest: /tmp/get-k3s.sh
     mode: '0755'
+
+- name: Execute k3s installation script
+  ansible.builtin.command: /tmp/get-k3s.sh
+  args:
+    creates: /usr/local/bin/k3s  # 👈 Якщо K3s уже встановлено, крок автоматично пропуститься
 
 - name: Ensure k3s service is started and enabled
   ansible.builtin.systemd:
@@ -23,9 +22,9 @@
     state: directory
     owner: ubuntu
     group: ubuntu
-    mode: '0750'
+    mode: '0755'
 
-- name: Copy k3s kubeconfig to ubuntu home
+- name: Copy k3s kubeconfig to ubuntu user home
   ansible.builtin.copy:
     src: /etc/rancher/k3s/k3s.yaml
     dest: /home/ubuntu/.kube/config
@@ -34,8 +33,8 @@
     group: ubuntu
     mode: '0600'
 
-- name: Add kubectl auto-completion to bashrc
-  ansible.builtin.lineinfile:
-    path: /home/ubuntu/.bashrc
-    line: 'source <(kubectl completion bash)'
-    state: present
+- name: Symlink k3s to kubectl
+  ansible.builtin.file:
+    src: /usr/local/bin/k3s
+    dest: /usr/local/bin/kubectl
+    state: link
