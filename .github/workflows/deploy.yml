@@ -12,6 +12,8 @@ jobs:
   deploy-helm:
     name: Deploy Helm Chart to K3s
     runs-on: self-hosted
+    env:
+      KUBECONFIG: /home/ubuntu/.kube/config
 
     steps:
       - name: Checkout Repository
