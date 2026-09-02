@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Експрес-замовлення в 1 клік</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 40px; display: flex; justify-content: center; }
+    .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h2 { color: #2c3e50; margin-top: 0; }
+    label { font-size: 14px; font-weight: bold; margin-top: 10px; display: block; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 4px; margin-top: 20px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #219150; }
+    .alert { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; }
+    .alert-success { background: #d4edda; color: #155724; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>⚡ Швидке замовлення</h2>
+    <form id="expressForm">
+      <label>Оберіть товар:</label>
+      <select id="productSelect" required></select>
+
+      <label>Ваше ім'я:</label>
+      <input type="text" id="name" required placeholder="Іван Іванов">
+
+      <label>Номер телефону:</label>
+      <input type="tel" id="phone" required placeholder="+380123456789">
+
+      <button type="submit">Купити в 1 клік</button>
+    </form>
+    <div id="alert" class="alert alert-success">Замовлення успішно оформлено!</div>
+  </div>
+
+  <script>
+    async function loadProducts() {
+      const res = await fetch('/api/products');
+      const products = await res.json();
+      const select = document.getElementById('productSelect');
+      select.innerHTML = products.map(p => `<option value="${p.id}">${p.name} - ${p.price} грн</option>`).join('');
+    }
+
+    document.getElementById('expressForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        product_id: document.getElementById('productSelect').value,
+        customer_name: document.getElementById('name').value,
+        customer_phone: document.getElementById('phone').value
+      };
+
+      const res = await fetch('/api/orders/express', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        document.getElementById('alert').style.display = 'block';
+        document.getElementById('expressForm').reset();
+      }
+    });
+
+    loadProducts();
+  </script>
+</body>
+</html>

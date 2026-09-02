@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-unified-ingress
+  namespace: demo-app
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    # 1. Форма Експрес-замовлення в 1 клік
+    - host: express.lab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shop-app-service
+                port:
+                  number: 80
+
+    # 2. Форма Детального замовлення з доставкою
+    - host: shop.lab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shop-app-service
+                port:
+                  number: 80
+
+    # 3. Панель Авторизації та Управління Адміністратора
+    - host: admin.lab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shop-app-service
+                port:
+                  number: 80

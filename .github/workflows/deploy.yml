@@ -1,32 +1,44 @@
-name: Continuous Deployment (GitOps)
+name: CI/CD Deployment Pipeline
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'k8s/**'
-      - '.github/workflows/deploy.yml'
+    branches: [ "main" ]
 
 jobs:
-  deploy-helm:
-    name: Deploy Helm Chart to K3s
-    runs-on: self-hosted
-    env:
-      KUBECONFIG: /home/ubuntu/.kube/config
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy Helm Chart
-        run: |
-          echo "===> Deploying Helm Chart..."
-          helm upgrade --install my-demo ./k8s/demo-app-chart \
-            --namespace demo-app \
-            --create-namespace
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Check deployment status
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/shop-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/shop-app:${{ github.sha }}
+
+      - name: Install Ansible & dependencies
         run: |
-          echo "===> Checking deployment status..."
-          kubectl rollout status deployment/my-demo-app -n demo-app --timeout=60s
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          ansible-galaxy collection install kubernetes.core
+
+      - name: Setup Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_BASE64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to Kubernetes via Ansible
+        run: |
+          ansible-playbook deploy-k8s.yml

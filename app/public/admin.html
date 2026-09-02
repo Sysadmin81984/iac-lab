@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Панель Адміністратора</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #eef2f5; margin: 0; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background-color: #343a40; color: white; }
+    input { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    button { padding: 8px 16px; background: #343a40; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button.danger { background: #dc3545; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Форма входу -->
+    <div id="loginSection" class="card">
+      <h2>🔐 Вхід у панель адміністратора</h2>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Логін (за замовчуванням: admin)" required>
+        <input type="password" id="password" placeholder="Пароль (за замовчуванням: admin123)" required>
+        <button type="submit">Увійти</button>
+      </form>
+    </div>
+
+    <!-- Панель після входу -->
+    <div id="adminPanel" class="hidden">
+      <div class="card">
+        <button onclick="logout()" style="float: right;">Вийти</button>
+        <h2>⚙️ Управління Товарами</h2>
+        <form id="addProductForm" style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="pName" placeholder="Назва товару" required>
+          <input type="number" id="pPrice" placeholder="Ціна (грн)" step="0.01" required>
+          <input type="number" id="pStock" placeholder="Кількість на складі" required>
+          <button type="submit">Додати</button>
+        </form>
+        <table id="productsTable">
+          <thead>
+            <tr><th>ID</th><th>Назва</th><th>Ціна</th><th>Залишок</th><th>Дія</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>📦 Список Замовлень</h2>
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Клієнт</th>
+              <th>Телефон</th>
+              <th>Товар</th>
+              <th>К-сть</th>
+              <th>Адреса</th>
+              <th>Тип форми</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('adminToken');
+
+    if (token) showAdminPanel();
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        token = data.token;
+        localStorage.setItem('adminToken', token);
+        showAdminPanel();
+      } else {
+        alert(data.error);
+      }
+    });
+
+    function showAdminPanel() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      loadProducts();
+      loadOrders();
+    }
+
+    function logout() {
+      localStorage.removeItem('adminToken');
+      location.reload();
+    }
+
+    async function loadProducts() {
+      const res = await fetch('/api/products');
+      const products = await res.json();
+      const tbody = document.querySelector('#productsTable tbody');
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.name}</td>
+          <td>${p.price} грн</td>
+          <td>${p.stock}</td>
+          <td><button class="danger" onclick="deleteProduct(${p.id})">Видалити</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadOrders() {
+      const res = await fetch('/api/admin/orders', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const orders = await res.json();
+      const tbody = document.querySelector('#ordersTable tbody');
+      tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td>${o.id}</td>
+          <td>${o.customer_name}</td>
+          <td>${o.customer_phone}</td>
+          <td>${o.product_name || 'Видалено'}</td>
+          <td>${o.quantity}</td>
+          <td>${o.delivery_address || '—'}</td>
+          <td><strong>${o.form_type}</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: document.getElementById('pName').value,
+          price: document.getElementById('pPrice').value,
+          stock: document.getElementById('pStock').value
+        })
+      });
+      if (res.ok) {
+        document.getElementById('addProductForm').reset();
+        loadProducts();
+      }
+    });
+
+    async function deleteProduct(id) {
+      if (!confirm('Видалити товар?')) return;
+      await fetch(`/api/admin/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadProducts();
+    }
+  </script>
+</body>
+</html>

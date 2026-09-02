@@ -1,0 +1,9 @@
+---
+- name: Deploy E-Commerce App & DB to Kubernetes Cluster
+  hosts: localhost
+  connection: local
+  vars:
+    k8s_manifests_dir: "{{ playbook_dir }}/k8s"
+    db_password: "supersecretpassword"
+  roles:
+    - k8s-deploy

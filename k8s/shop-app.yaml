@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-app
+  namespace: demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shop-app
+  template:
+    metadata:
+      labels:
+        app: shop-app
+    spec:
+      containers:
+        - name: shop-app
+          image: dockersl1984/shop-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_HOST
+              value: "postgres-cluster-rw"
+            - name: DB_USER
+              value: "db_user"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: password
+            - name: DB_NAME
+              value: "main_db"
+            - name: JWT_SECRET
+              value: "super-secret-jwt-key"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-app-service
+  namespace: demo-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    app: shop-app

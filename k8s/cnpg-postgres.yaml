@@ -1,0 +1,21 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: demo-app
+spec:
+  instances: 2 # 1 Primary (Master) + 1 Standby (Replica)
+  
+  bootstrap:
+    initdb:
+      database: main_db
+      owner: db_user
+      secret:
+        name: db-secrets
+
+  storage:
+    size: 5Gi
+
+  # Автоматичний збір метрик для Prometheus
+  monitoring:
+    enablePodMonitor: true

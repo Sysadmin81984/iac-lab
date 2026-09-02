@@ -1,0 +1,45 @@
+---
+- name: Ensure namespace 'demo-app' exists
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: demo-app
+    state: present
+
+- name: Create Database Secret in K8s
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: db-secrets
+        namespace: demo-app
+      type: Opaque
+      # stringData автоматично кодує значення у base64 при відправці до Kubernetes
+      stringData:
+        password: '{{ db_password | default("supersecretpassword") }}'
+
+- name: Deploy Kubernetes Manifests
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ k8s_manifests_dir }}/{{ item }}"
+  loop:
+    - postgres-db.yaml
+    - shop-app.yaml
+    - unified-ingress.yaml
+
+- name: Wait for PostgreSQL StatefulSet
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: StatefulSet
+    name: postgres
+    namespace: demo-app
+  register: postgres_st
+  until:
+    - postgres_st.resources is defined
+    - postgres_st.resources | length > 0
+    - postgres_st.resources[0].status.readyReplicas is defined
+    - postgres_st.resources[0].status.readyReplicas == postgres_st.resources[0].status.replicas
+  retries: 24 # 24 спроби * 5 секунд = 120 секунд таймаут
+  delay: 5

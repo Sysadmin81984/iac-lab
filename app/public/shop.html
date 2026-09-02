@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Інтернет-магазин - Детальне замовлення</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 40px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h2 { color: #0d6efd; margin-top: 0; }
+    label { font-size: 14px; font-weight: bold; margin-top: 15px; display: block; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
+    button { width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; border-radius: 4px; margin-top: 20px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #0b5ed7; }
+    .alert { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; background: #d1e7dd; color: #0f5132; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🛍️ Оформлення замовлення з доставкою</h2>
+    <form id="detailedForm">
+      <label>Оберіть товар:</label>
+      <select id="productSelect" required></select>
+
+      <label>Кількість:</label>
+      <input type="number" id="quantity" value="1" min="1" required>
+
+      <label>ПІБ Покупця:</label>
+      <input type="text" id="name" required placeholder="Петренко Петро Петрович">
+
+      <label>Телефон:</label>
+      <input type="tel" id="phone" required placeholder="+380991112233">
+
+      <label>Адреса доставки (місто, відділення/вулиця):</label>
+      <textarea id="address" rows="3" required placeholder="м. Київ, Відділення Нової Пошти №1"></textarea>
+
+      <button type="submit">Підтвердити замовлення</button>
+    </form>
+    <div id="alert" class="alert">Замовлення прийнято! Менеджер зв'яжеться з вами.</div>
+  </div>
+
+  <script>
+    async function loadProducts() {
+      const res = await fetch('/api/products');
+      const products = await res.json();
+      const select = document.getElementById('productSelect');
+      select.innerHTML = products.map(p => `<option value="${p.id}">${p.name} - ${p.price} грн</option>`).join('');
+    }
+
+    document.getElementById('detailedForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        product_id: document.getElementById('productSelect').value,
+        quantity: document.getElementById('quantity').value,
+        customer_name: document.getElementById('name').value,
+        customer_phone: document.getElementById('phone').value,
+        delivery_address: document.getElementById('address').value
+      };
+
+      const res = await fetch('/api/orders/detailed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        document.getElementById('alert').style.display = 'block';
+        document.getElementById('detailedForm').reset();
+      }
+    });
+
+    loadProducts();
+  </script>
+</body>
+</html>
